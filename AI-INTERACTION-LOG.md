@@ -21,6 +21,10 @@ The JSONL companion contains one JSON object per interaction, with the same inte
 | I | GitHub Copilot in VS Code | unavailable | main assistant agent / non-interactive; independent review details unavailable | `run-tests` |
 | J | GitHub Copilot in VS Code | unavailable | main assistant agent / unavailable | unavailable |
 | K | GitHub Copilot in VS Code | unavailable | main assistant agent / unavailable | unavailable |
+| L | GitHub Copilot in VS Code | unavailable | main assistant agent / unavailable | unavailable |
+| M | GitHub Copilot in VS Code | unavailable | main assistant agent / unavailable | `run-tests` |
+| N | GitHub Copilot in VS Code | unavailable | main assistant agent / unavailable | unavailable |
+| O | GitHub Copilot in VS Code | unavailable | main assistant agent / unavailable | unavailable |
 
 ## Interactions
 
@@ -167,6 +171,58 @@ The JSONL companion contains one JSON object per interaction, with the same inte
 - **Validation:** `dotnet test backend\\InvoiceApp.sln` passed all 28 tests (0 failed, 0 skipped). `dotnet build backend\\src\\InvoiceApp.Api\\InvoiceApp.Api.csproj` succeeded with 0 warnings and 0 errors. `git diff --check` passed before final log updates; it was rerun after final log updates.
 - **Outcome / commit:** Both findings addressed with deterministic concurrency coverage; no commit was created.
 
+### L — Playwright rejected over-limit approval E2E
+
+- **Timestamp:** 2026-10-31T23:56:41.529+05:30 (provided with the request).
+- **Prompt:** Implement the required Playwright UI scenario: sign in as the configured Manager; create a unique 50,000.01 invoice; submit it; capture full authenticated GET JSON; attempt approval from the UI; assert the exact rejection message, identical invoice JSON afterward, and visibly pending status. Reuse existing Playwright setup, update both logs, run the E2E test and backend suite, run `git diff --check`, and do not commit.
+- **AI tool / agent:** GitHub Copilot in VS Code; main assistant agent. Model and mode unavailable.
+- **Skills:** None invoked for this interaction.
+- **Files inspected:** `AGENTS.md`; `e2e/package.json`; `e2e/package-lock.json`; `e2e/playwright.config.ts`; `e2e/tests/`; `e2e/pages/`; `backend/src/InvoiceApp.Api/wwwroot/index.html`; `app.js`; `Controllers/AuthController.cs`; `Controllers/InvoicesController.cs`; `Controllers/ApprovalsController.cs`; `Controllers/ApiControllerBase.cs`; `Auth/SessionAuthMiddleware.cs`; `Auth/SessionStore.cs`; `InMemoryInvoiceRepository.cs`; `appsettings.json`; and OpenSpec `tasks.md` and invoice approval `spec.md`.
+- **Files modified:** `e2e/pages/invoice-approval.page.ts`; `e2e/tests/approval-limits.spec.ts`; `AI-INTERACTION-LOG.md`; and `AI-INTERACTION-LOG.jsonl`. No dependency manifests or lockfiles were changed.
+- **AI output:** Added an `InvoiceApprovalPage` page object for accessible sign-in, unique invoice creation/submission, authenticated GET snapshot, approval action, and visible pending-state assertion. The E2E test uses a UUID-based customer name, submits the $50,000.01 invoice through the UI, captures full invoice JSON before/after via the authenticated API, checks the exact Manager-limit alert, and verifies the invoice remains visibly `Pending Approval`.
+- **Human decision:** Use existing Playwright configuration/dependencies, keep changes focused, and do not commit.
+- **Validation:** Initial `npm ci` from the repository root failed because the lockfile is under `e2e`; reran `npm ci` from `e2e` successfully (5 packages added, no vulnerabilities). Initial E2E run found Chromium was not installed; `npx playwright install chromium` completed. `npm test -- --reporter=list` from `e2e` passed the test (1 passed). `dotnet test backend\\InvoiceApp.sln` passed all 28 tests (0 failed, 0 skipped). `git diff --check` passed after log updates.
+- **Outcome / commit:** The requested E2E scenario is implemented and validated; no commit was created.
+
+### M — Stryker mutation-testing progression
+
+- **Timestamp:** 2026-11-01T00:37:50.216+05:30 (latest report file timestamp).
+- **Prompt:** Exact prompts for the earlier baseline and intermediate runs are unavailable in this summarized history. This entry records the verified Stryker 4.13.0 runs and requested reruns since interaction L.
+- **AI tool / agent:** GitHub Copilot in VS Code; main assistant agent. Model and mode unavailable.
+- **Skills:** `run-tests`.
+- **Files inspected:** `ApprovalService.cs`; `ApprovalServiceTests.cs`; and the baseline, initial-final, additional-tests, and latest Stryker JSON reports.
+- **Files modified:** `artifacts/mutation-testing/final-after-repository-assertions-4.13.0/reports/mutation-report.json` was generated.
+- **AI output:** Ran mutation testing scoped to `ApprovalService.cs` with Stryker 4.13.0 and `net10.0`. Scores recorded through the run progression: baseline 60.00%; initial final 86.89%; after additional assertions 93.44%; latest final 96.72%. The latest run reports 60 tested mutants: 59 killed, 1 survived, 1 no coverage, 4 compile errors, and 0 timeouts. Mutation 30 is the remaining intentional survivor: the approved high-value two-approver path is handled before the single-approval rejection-message branch, so the survivor does not justify changing the approved rules.
+- **Human decision:** Preserve the approved two-approver business rules and leave Mutation 30 as an intentional survivor.
+- **Validation:** Baseline report/console evidence: 20 mutants tested, 7 tests discovered, 60.00% score. Initial-final evidence: 58 tested, 53 killed, 5 survived, 86.89%. Additional-assertions evidence: 60 tested, 56 killed, 3 survived, 1 timeout, 93.44%. Latest report: 59 killed, 1 survived, 1 no coverage, 4 compile errors, 0 timeouts, 96.72%. Baseline and final test suites differ (7 tests discovered at baseline versus 32 in the final suite), so this is not a perfectly controlled comparison. The latest full mutation run used an isolated temporary copy because the running API process held a shared build DLL; the running process was not terminated.
+- **Outcome / commit:** Latest report was committed in `9488620345f9974c09d1e43b6869b47da5feef96`.
+
+### N — Commit mutation assertions and evidence
+
+- **Timestamp:** 2026-11-01T00:40:44+05:30 (commit timestamp).
+- **Prompt:** Prepare the latest test improvements and mutation-testing evidence for a commit; run the full backend suite and `git diff --check`; commit only the reviewed test and report files with `test: strengthen approval mutation coverage`.
+- **AI tool / agent:** GitHub Copilot in VS Code; main assistant agent. Model and mode unavailable.
+- **Skills:** None invoked for the commit interaction.
+- **Files inspected:** `backend/tests/InvoiceApp.Tests/ApprovalServiceTests.cs`; the latest mutation report; and Git status/diff.
+- **Files modified:** `backend/tests/InvoiceApp.Tests/ApprovalServiceTests.cs`; `artifacts/mutation-testing/final-after-repository-assertions-4.13.0/reports/mutation-report.json`.
+- **AI output:** Preserved the existing exception-type assertion and added the exact invoice-not-found message assertion. Preserved the rejection test assertions and added `UpdateCount == 1` after successful rejection. Committed only the test file and latest mutation report as `9488620345f9974c09d1e43b6869b47da5feef96`.
+- **Human decision:** Commit only the reviewed test and mutation-evidence files; preserve unrelated work and do not push or create a PR.
+- **Validation:** The in-place `dotnet test backend/InvoiceApp.sln` build was blocked because the running `InvoiceApp.Api` process locked a DLL. The process was left running and was not terminated. The full backend suite passed in an isolated temporary copy: 32 passed, 0 failed, 0 skipped. `git diff --check` passed.
+- **Outcome / commit:** Commit `9488620345f9974c09d1e43b6869b47da5feef96` (`test: strengthen approval mutation coverage`).
+
+### O — Commit Playwright invoice-approval E2E
+
+- **Timestamp:** 2026-11-01T00:44:01+05:30 (commit timestamp).
+- **Prompt:** Stage and commit only `e2e/pages/invoice-approval.page.ts` and `e2e/tests/approval-limits.spec.ts` with `test: add Playwright invoice approval rejection E2E`; do not modify or stage either AI interaction log.
+- **AI tool / agent:** GitHub Copilot in VS Code; main assistant agent. Model and mode unavailable.
+- **Skills:** None invoked for the commit interaction.
+- **Files inspected:** Git status and the two specified Playwright files.
+- **Files modified:** `e2e/pages/invoice-approval.page.ts`; `e2e/tests/approval-limits.spec.ts`.
+- **AI output:** Committed only the page object and E2E test as `c9ff85530cd5924c38900315702365b49e68a168`. The test signs in as a Manager, attempts approval of a 50,000.01 invoice, verifies the rejection reason, unchanged invoice JSON, and visible Pending Approval status.
+- **Human decision:** Stage and commit only the two specified E2E files; leave the AI logs untouched.
+- **Validation:** The Playwright scenario previously passed: 1 test passed (recorded in interaction L). `git diff --check` passed before this commit. No application or log files were included.
+- **Outcome / commit:** Commit `c9ff85530cd5924c38900315702365b49e68a168` (`test: add Playwright invoice approval rejection E2E`).
+
 ## Outcome and commit references
 
-No commit was created; there are no commit references for A–K.
+No commit was created; there are no commit references for A–L.
