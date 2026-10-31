@@ -100,6 +100,16 @@ public class ApprovalServiceTests
     }
 
     [Fact]
+    public void Submit_AlreadyApprovedInvoice_ThrowsWithExactReason()
+    {
+        var (service, _) = ServiceFor(InvoiceWith("INV-1", InvoiceStatus.Approved));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => service.Submit("INV-1"));
+
+        Assert.Equal("Invoice INV-1 is Approved; only drafts can be submitted.", exception.Message);
+    }
+
+    [Fact]
     public void CreateSnapshot_WaitsForMutationAndCopiesCompleteInvoiceState()
     {
         var invoice = InvoiceWith("INV-1", InvoiceStatus.PendingApproval);
@@ -322,6 +332,46 @@ public class ApprovalServiceTests
     }
 
     [Fact]
+    public void Approve_HighValueInvoiceWithTwoPriorApprovals_LeavesInvoiceAndHistoryUnchanged()
+    {
+        var invoice = InvoiceWith("INV-1", InvoiceStatus.PendingApproval);
+        invoice.Amount = 500_000.01m;
+        invoice.ApprovalHistory =
+        [
+            new ApprovalDecision("demo.manager", "Manager", new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)),
+            new ApprovalDecision("demo.director1", "Director", new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc))
+        ];
+        var before = Snapshot(invoice);
+        var (service, repository) = ServiceFor(invoice);
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => service.Approve("INV-1", "demo.director2", "Director"));
+
+        Assert.Equal(
+            "A high-value invoice must have exactly one prior approval before its final approval.",
+            exception.Message);
+        AssertUnchanged(before, invoice);
+        Assert.Equal(0, repository.UpdateCount);
+    }
+
+    [Fact]
+    public void Approve_RejectsAlreadyApprovedInvoiceWithExactReason()
+    {
+        var invoice = InvoiceWith("INV-1", InvoiceStatus.Approved);
+        var before = Snapshot(invoice);
+        var (service, repository) = ServiceFor(invoice);
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => service.Approve("INV-1", "demo.manager", "Manager"));
+
+        Assert.Equal(
+            "Invoice INV-1 is Approved; only pending invoices can be decided.",
+            exception.Message);
+        AssertUnchanged(before, invoice);
+        Assert.Equal(0, repository.UpdateCount);
+    }
+
+    [Fact]
     public async Task Reject_ConcurrentWithFinalHighValueApproval_CannotOverwriteApprovedState()
     {
         var invoice = InvoiceWith("INV-1", InvoiceStatus.PendingApproval);
@@ -408,18 +458,22 @@ public class ApprovalServiceTests
     {
         var (service, _) = ServiceFor();
 
-        Assert.Throws<KeyNotFoundException>(() => service.Approve("INV-404", "demo.manager", "Manager"));
+        var exception = Assert.Throws<KeyNotFoundException>(
+            () => service.Approve("INV-404", "demo.manager", "Manager"));
+
+        Assert.Equal("Invoice INV-404 was not found.", exception.Message);
     }
 
     [Fact]
     public void Reject_RecordsReasonAndApprover()
     {
-        var (service, _) = ServiceFor(InvoiceWith("INV-1", InvoiceStatus.PendingApproval));
+        var (service, repository) = ServiceFor(InvoiceWith("INV-1", InvoiceStatus.PendingApproval));
 
         var result = service.Reject("INV-1", "demo.approver", "Duplicate invoice");
 
         Assert.Equal(InvoiceStatus.Rejected, result.Status);
         Assert.Equal("Duplicate invoice", result.DecisionNote);
+        Assert.Equal(1, repository.UpdateCount);
     }
 
     [Fact]
@@ -428,5 +482,17 @@ public class ApprovalServiceTests
         var (service, _) = ServiceFor(InvoiceWith("INV-1", InvoiceStatus.PendingApproval));
 
         Assert.Throws<ArgumentException>(() => service.Reject("INV-1", "demo.approver", "  "));
+    }
+
+    [Fact]
+    public void Reject_WhitespaceReason_ThrowsWithExpectedMessageAndParameter()
+    {
+        var (service, _) = ServiceFor(InvoiceWith("INV-1", InvoiceStatus.PendingApproval));
+
+        var exception = Assert.Throws<ArgumentException>(
+            () => service.Reject("INV-1", "demo.approver", "  "));
+
+        Assert.Equal("A reason is required to reject an invoice. (Parameter 'reason')", exception.Message);
+        Assert.Equal("reason", exception.ParamName);
     }
 }
