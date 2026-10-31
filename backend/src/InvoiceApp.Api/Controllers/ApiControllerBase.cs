@@ -10,7 +10,7 @@ public abstract class ApiControllerBase : ControllerBase
     {
         try
         {
-            return Ok(action());
+            return Ok(action().CreateSnapshot());
         }
         catch (KeyNotFoundException ex)
         {

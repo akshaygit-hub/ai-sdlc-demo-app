@@ -7,7 +7,7 @@ This capability applies the assignment's role-based invoice approval limits, rec
 ## ADDED Requirements
 
 ### Requirement: Single-approver limits are role-based
-The system SHALL allow a Manager to make a single final approval only for invoices of 50,000 or less, and a Director to make a single final approval only for invoices of 500,000 or less. The authenticated identity and role determine the decision; Admin grants no implicit bypass, and legacy Approver is not treated as Manager or Director.
+The system SHALL allow an authenticated Manager to make a single final approval for invoices up to 50,000 inclusive, and an authenticated Director up to 500,000 inclusive. These caps do not limit the first approval in the two-approver pathway for invoices above 500,000. Admin grants no implicit bypass; legacy Approver is not mapped to either role.
 
 #### Scenario: Manager approves at the inclusive limit
 - **WHEN** an authenticated Manager approves a pending invoice for 50,000
@@ -30,7 +30,15 @@ The system SHALL allow a Manager to make a single final approval only for invoic
 - **THEN** the system does not treat that role as Manager or Director
 
 ### Requirement: High-value invoices need two distinct approvals
-For an invoice above 500,000, the system SHALL require two approvals by different user identities, and the second approval SHALL be made by a Director. The system SHALL NOT require the first approver to be a Director.
+For invoices above 500,000, the system SHALL require two approvals by distinct user identities. The first approver MAY be a Manager or Director (the human-authorized interpretation; the assignment left eligibility unresolved); the second SHALL be a Director. The system SHALL preserve both decisions in order with authenticated username, role, and UTC timestamp, remain pending after one approval, and approve only after both.
+
+#### Scenario: Manager makes the first high-value approval above the single-approval cap
+- **WHEN** an authenticated Manager records the first approval for an invoice above 500,000
+- **THEN** the approval is recorded and the invoice remains pending, even when the amount exceeds 50,000
+
+#### Scenario: Director makes the first high-value approval
+- **WHEN** an authenticated Director records the first approval for an invoice above 500,000
+- **THEN** the approval is recorded and the invoice remains pending until a distinct Director makes the second approval
 
 #### Scenario: A distinct Director completes a high-value approval
 - **WHEN** an invoice for 500,000.01 has one recorded approval and a different authenticated Director makes the second approval

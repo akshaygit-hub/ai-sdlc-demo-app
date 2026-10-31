@@ -17,6 +17,10 @@ The JSONL companion contains one JSON object per interaction, with the same inte
 | E | GitHub Copilot in VS Code | unavailable | general-purpose sub-agent / background | `run-tests` |
 | F | GitHub Copilot in VS Code | unavailable | code-review sub-agent / background | unavailable |
 | G | GitHub Copilot in VS Code | unavailable | unavailable / unavailable | unavailable |
+| H | GitHub Copilot in VS Code | unavailable | main assistant agent / non-interactive | `run-tests` |
+| I | GitHub Copilot in VS Code | unavailable | main assistant agent / non-interactive; independent review details unavailable | `run-tests` |
+| J | GitHub Copilot in VS Code | unavailable | main assistant agent / unavailable | unavailable |
+| K | GitHub Copilot in VS Code | unavailable | main assistant agent / unavailable | unavailable |
 
 ## Interactions
 
@@ -113,6 +117,56 @@ The JSONL companion contains one JSON object per interaction, with the same inte
 - **Validation:** After mutation testing, `dotnet build backend/src/InvoiceApp.Api/InvoiceApp.Api.csproj --no-restore` succeeded with 0 warnings/errors; `dotnet test backend/InvoiceApp.sln --no-restore` passed all 13 tests; `git diff --check` passed. The report directory was cleaned up.
 - **Outcome / commit:** Stage 1 mutation testing completed with the counts and limitations above; no commit was created.
 
+### H — Implementation Step 2
+
+- **Timestamp:** 2026-10-31T23:26:07.047+05:30 (provided with the request).
+- **Prompt:** Implement only Step 2 for `add-role-based-invoice-approval-limits`; first record the human's clarification that, despite the original assignment's ambiguity, a Manager or Director may make the first approval above 500,000 and the single-approval caps do not block that pathway stage. Preserve session-sourced authentication, implement ordered identity/timestamp decisions and pending-then-approved behavior, guarantee rejected attempts do not mutate invoice state or repository, retain Step 1 behavior through 500,000, add boundary/role/identity/history tests, update the relevant OpenSpec artifacts and both interaction logs, run the full backend tests, API build, and `git diff --check`; do not change framework/configuration, unrelated files, commit, or start a review agent.
+- **AI tool / agent:** GitHub Copilot in VS Code; main assistant agent working in non-interactive mode. Model unavailable.
+- **Skills:** `run-tests`.
+- **Files inspected:** `AGENTS.md`; all change-specific OpenSpec artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/invoice-approval-limits/spec.md`, `.openspec.yaml`); `openspec/config.yaml`; `backend/src/InvoiceApp.Domain/ApprovalService.cs`; `Invoice.cs`; `IInvoiceRepository.cs`; `InvoiceStatus.cs`; the API controllers, `Program.cs`, and `InMemoryInvoiceRepository.cs`; all files under `backend/src/InvoiceApp.Api/Auth/`; `backend/tests/InvoiceApp.Tests/ApprovalServiceTests.cs`; `FakeInvoiceRepository.cs`; the related project files; both existing interaction logs; and the prior session checkpoint.
+- **Files modified:** `backend/src/InvoiceApp.Domain/Invoice.cs`; `backend/src/InvoiceApp.Domain/ApprovalService.cs`; `backend/tests/InvoiceApp.Tests/ApprovalServiceTests.cs`; `openspec/changes/add-role-based-invoice-approval-limits/design.md`; `openspec/changes/add-role-based-invoice-approval-limits/specs/invoice-approval-limits/spec.md`; `openspec/changes/add-role-based-invoice-approval-limits/tasks.md`; `AI-INTERACTION-LOG.md`; and `AI-INTERACTION-LOG.jsonl`. No API/auth/configuration, SDK/framework, or unrelated files were changed.
+- **Human decision:** The original assignment did not settle first-approver eligibility above 500,000. The human resolved the ambiguity: Manager or Director may make the first decision in the two-approver pathway, even above their single-approval cap; the second decision must be from a distinct Director. Admin and legacy Approver remain ineligible to approve or bypass limits. No commit.
+- **AI output:** Added ordered approval history records containing approver, role, and UTC timestamp. A high-value first approval records history and leaves the invoice pending; a distinct Director's second approval completes it. Domain validates role, stage, and identity before mutation under an invoice lock. Tests cover 500,000.01 success, Manager/Director first approvals, the Director second approval, Admin/legacy Approver rejection even on high-value invoices, exact single-approval boundaries, and rejected-attempt invoice/history immutability and repository update counts.
+- **Validation:** `dotnet test backend\\InvoiceApp.sln` passed: 24 passed, 0 failed. `dotnet build backend\\src\\InvoiceApp.Api\\InvoiceApp.Api.csproj` succeeded with 0 warnings and 0 errors. `git diff --check` passed after the final interaction-log updates. No E2E or mutation testing was requested for this implementation step. No independent review agent has run; the separate reviewer is intentionally left for the next step.
+- **Outcome / commit:** Stage 2 implementation and requested tests completed; no commit was created.
+
+### I — Fix for independent review race finding
+
+- **Timestamp:** 2026-10-31T23:34:22.198+05:30 (provided with the request; review execution time unavailable).
+- **Prompt:** Fix the independent review finding that `ApprovalService.Approve` locks the invoice but `Reject` does not, allowing rejection to race with final high-value approval and overwrite Approved while two approvals remain. Use the same per-invoice lock for rejection validation/mutation, add focused transition regression coverage, update both logs factually, run full backend tests, API build, and `git diff --check`; do not commit.
+- **Independent review details:** Finding was relayed by the user. Reviewer identity, tool, model, execution mode, timestamp, and additional findings are unavailable. No additional review claims are made.
+- **AI tool / agent:** GitHub Copilot in VS Code; main assistant agent working in non-interactive mode. Model unavailable.
+- **Skills:** `run-tests`.
+- **Files modified:** `backend/src/InvoiceApp.Domain/ApprovalService.cs`; `backend/tests/InvoiceApp.Tests/ApprovalServiceTests.cs`; `AI-INTERACTION-LOG.md`; and `AI-INTERACTION-LOG.jsonl`.
+- **Review finding and disposition:** Fixed. `Reject` now performs its pending-state check and state/repository mutation inside the same `lock(invoice)` used by approval. Added a concurrency regression that pauses the final approval update, attempts a rejection while that transition is in progress, and verifies approval completes with two history decisions while the rejection then fails without overwriting Approved or issuing another repository update.
+- **Validation:** The first focused regression run exposed an incorrect expected repository-update count in the test (the paused approval had already incremented it); the assertion was corrected. The focused regression then passed (1/1). `dotnet test backend\\InvoiceApp.sln` passed (25/25, 0 failed). `dotnet build backend\\src\\InvoiceApp.Api\\InvoiceApp.Api.csproj` succeeded (0 warnings, 0 errors). `git diff --check` passed. No commit was created.
+
+### J — Consistent invoice snapshots for API responses
+
+- **Timestamp:** `null` (unavailable).
+- **Prompt:** Address review Finding 7 only: inspect all invoice read paths; prevent API reads and serialization from observing a partially mutated invoice using the smallest safe snapshot/locking solution; add a regression test; preserve approval/rejection behavior; run the full backend suite, API build, and `git diff --check`; update both logs; do not commit.
+- **AI tool / agent:** GitHub Copilot in VS Code; main assistant agent. Model and mode unavailable.
+- **Skills:** None invoked for this interaction.
+- **Files inspected:** `backend/src/InvoiceApp.Domain/IInvoiceRepository.cs`; `backend/src/InvoiceApp.Domain/Invoice.cs`; `backend/src/InvoiceApp.Domain/ApprovalService.cs`; `backend/src/InvoiceApp.Api/InMemoryInvoiceRepository.cs`; `backend/src/InvoiceApp.Api/Controllers/ApiControllerBase.cs`; `backend/src/InvoiceApp.Api/Controllers/InvoicesController.cs`; `backend/src/InvoiceApp.Api/Controllers/ApprovalsController.cs`; `backend/tests/InvoiceApp.Tests/ApprovalServiceTests.cs`; `backend/tests/InvoiceApp.Tests/FakeInvoiceRepository.cs`; both interaction logs.
+- **Files modified:** `backend/src/InvoiceApp.Domain/Invoice.cs`; `backend/src/InvoiceApp.Domain/ApprovalService.cs`; `backend/src/InvoiceApp.Api/Controllers/ApiControllerBase.cs`; `backend/src/InvoiceApp.Api/Controllers/InvoicesController.cs`; `backend/tests/InvoiceApp.Tests/ApprovalServiceTests.cs`; `AI-INTERACTION-LOG.md`; and `AI-INTERACTION-LOG.jsonl`.
+- **AI output:** Inspected `GetAll`, `GetById`, and `GetByIds`; only `GetAll` and `GetById` currently serve invoice GET endpoints. `ApprovalService.Find` uses `GetById` to retrieve the mutable entity, so repository reads were not changed. Added `Invoice.CreateSnapshot()` to copy all invoice fields and approval history under `lock(invoice)`. API GET endpoints snapshot each returned invoice; mutation responses use the shared `ApiControllerBase.Handle` snapshot; invoice creation also returns a snapshot. `Submit` now synchronizes its status mutation under the same per-invoice lock so every service mutation participates in the read-snapshot lock. Added a concurrency regression that holds the invoice lock during a partial state change, verifies snapshot creation blocks, then checks the result is complete and its history is detached.
+- **Human decision:** Use the smallest safe solution, preserve the existing approval/rejection behavior, do not commit.
+- **Validation:** An initial full test run passed 26 tests but reported an xUnit blocking-task analyzer warning in the new test; the test was adjusted to await `Task.WhenAny`. Final `dotnet test backend\\InvoiceApp.sln` passed 26 tests, 0 failed, with no warnings. `dotnet build backend\\src\\InvoiceApp.Api\\InvoiceApp.Api.csproj` succeeded with 0 warnings and 0 errors. `git diff --check` passed.
+- **Outcome / commit:** API-facing invoice results are detached consistent snapshots; no commit was created.
+
+### K — Snapshot test and deletion race review findings
+
+- **Timestamp:** 2026-10-31T23:47:52.414+05:30 (provided with the request).
+- **Prompt:** Address only the two latest review findings: make the snapshot concurrency test signal an attempted lock acquisition without relying on fixed delays; synchronize Admin deletion on the per-invoice lock; ensure concurrent approval/submission cannot succeed after deletion; add deletion-race regression coverage; run backend tests, API build, and `git diff --check`; update both logs; do not commit.
+- **AI tool / agent:** GitHub Copilot in VS Code; main assistant agent. Model and mode unavailable.
+- **Skills:** None invoked for this interaction.
+- **Files inspected:** `backend/src/InvoiceApp.Api/InMemoryInvoiceRepository.cs`; `backend/src/InvoiceApp.Api/Controllers/InvoicesController.cs`; `backend/src/InvoiceApp.Domain/ApprovalService.cs`; `backend/src/InvoiceApp.Domain/IInvoiceRepository.cs`; `backend/src/InvoiceApp.Domain/Invoice.cs`; `backend/tests/InvoiceApp.Tests/ApprovalServiceTests.cs`; `backend/tests/InvoiceApp.Tests/InvoiceApp.Tests.csproj`; and both interaction logs.
+- **Files modified:** `backend/src/InvoiceApp.Api/InMemoryInvoiceRepository.cs`; `backend/tests/InvoiceApp.Tests/InvoiceApp.Tests.csproj`; `backend/tests/InvoiceApp.Tests/ApprovalServiceTests.cs`; `backend/tests/InvoiceApp.Tests/InvoiceRepositoryConcurrencyTests.cs`; `AI-INTERACTION-LOG.md`; and `AI-INTERACTION-LOG.jsonl`.
+- **AI output:** Reworked snapshot coverage to signal immediately before snapshot acquisition, then wait until the dedicated reader thread enters `WaitSleepJoin` while the test holds the invoice monitor; no fixed delay or blocking Task operation is used. `InMemoryInvoiceRepository.Remove` now finds the stored entity, releases the repository lock before acquiring the invoice lock, and removes that exact entity while holding both the invoice lock and repository lock. `Update` now requires the same entity instance to remain stored and throws `KeyNotFoundException` if deletion already won, preventing a stale Submit/Approve from reporting success or replacing another invoice with the same ID. Added tests against the actual in-memory repository that delete after a service read but before Submit/Approve can acquire the invoice lock; both operations fail rather than succeeding.
+- **Human decision:** Address only the two review findings, preserve the existing workflow, and do not commit.
+- **Validation:** `dotnet test backend\\InvoiceApp.sln` passed all 28 tests (0 failed, 0 skipped). `dotnet build backend\\src\\InvoiceApp.Api\\InvoiceApp.Api.csproj` succeeded with 0 warnings and 0 errors. `git diff --check` passed before final log updates; it was rerun after final log updates.
+- **Outcome / commit:** Both findings addressed with deterministic concurrency coverage; no commit was created.
+
 ## Outcome and commit references
 
-No commit was created; there are no commit references for A–G.
+No commit was created; there are no commit references for A–K.
