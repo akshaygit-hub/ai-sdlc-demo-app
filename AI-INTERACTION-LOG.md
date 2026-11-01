@@ -25,6 +25,7 @@ The JSONL companion contains one JSON object per interaction, with the same inte
 | M | GitHub Copilot in VS Code | unavailable | main assistant agent / unavailable | `run-tests` |
 | N | GitHub Copilot in VS Code | unavailable | main assistant agent / unavailable | unavailable |
 | O | GitHub Copilot in VS Code | unavailable | main assistant agent / unavailable | unavailable |
+| P | GitHub Copilot in VS Code | unavailable | code-review sub-agent / synchronous | unavailable |
 
 ## Interactions
 
@@ -223,6 +224,19 @@ The JSONL companion contains one JSON object per interaction, with the same inte
 - **Validation:** The Playwright scenario previously passed: 1 test passed (recorded in interaction L). `git diff --check` passed before this commit. No application or log files were included.
 - **Outcome / commit:** Commit `c9ff85530cd5924c38900315702365b49e68a168` (`test: add Playwright invoice approval rejection E2E`).
 
+### P — Independent branch code review
+
+- **Timestamp:** 2026-11-01T22:18:36.523+05:30 (provided with the review request).
+- **Prompt:** "Act as an independent senior .NET code reviewer. Review the complete changes in the current Git branch compared with `main`. Do not modify any files. Do not automatically fix issues. Review the implementation against these business requirements: Manager up to 50,000; Director up to 500,000; invoices above 500,000 need two distinct approvers; second approver is a Director; same user cannot approve twice; failed attempts have a clear reason and do not modify invoice state/history. Review business logic and boundaries, authorization and role validation, repository/service layering, concurrency/thread safety, API/error handling, unit-test negative coverage, Playwright E2E quality, maintainability/regressions, and potential security issues. For every finding provide severity, file/line, impact, and suggested correction; identify missing tests and unsatisfied requirements; give an overall PASS, PASS WITH OBSERVATIONS, or FAIL verdict. Save the report as `PR-REVIEW.md`."
+- **AI tool / agent:** GitHub Copilot in VS Code; `code-review` sub-agent in synchronous mode. Model unavailable. A custom review prompt was used because the workshop's specific review prompt was unavailable.
+- **Skills:** None recorded for this review.
+- **Files reviewed:** Complete current branch diff against `main`; `AGENTS.md`; `openspec/changes/add-role-based-invoice-approval-limits/{proposal.md,design.md,tasks.md,specs/invoice-approval-limits/spec.md}`; `backend/src/InvoiceApp.Domain/{ApprovalService.cs,Invoice.cs}`; `backend/src/InvoiceApp.Api/Controllers/{ApprovalsController.cs,InvoicesController.cs,ApiControllerBase.cs}`; `backend/src/InvoiceApp.Api/InMemoryInvoiceRepository.cs`; `backend/src/InvoiceApp.Api/appsettings.json`; `backend/tests/InvoiceApp.Tests/{ApprovalServiceTests.cs,InvoiceRepositoryConcurrencyTests.cs,FakeInvoiceRepository.cs}`; and `e2e/pages/invoice-approval.page.ts`, `e2e/tests/approval-limits.spec.ts`.
+- **Files modified:** The review agent created `PR-REVIEW.md`. This follow-up updated `ASSIGNMENT.md` and appended this entry to `AI-INTERACTION-LOG.md` and `AI-INTERACTION-LOG.jsonl`. No application code or review-report content was modified in this follow-up.
+- **AI output / findings:** The review verdict was PASS WITH OBSERVATIONS. Finding 1 was a medium-severity observation: shared demo passwords may let one person authenticate using two different configured identities, weakening separation of duties. It also recommended API tests for unauthenticated access, Admin/legacy Approver denial, and authenticated username/role propagation; and a successful high-value Playwright flow with two authenticated users. The review found no listed approval rule unsatisfied.
+- **Human decision and dispositions:** Record the verdict, prompt unavailability, findings, and truthful dispositions without changing application code or `PR-REVIEW.md`. Finding 1 (shared demo credentials): Deferred because no credential-management or account-ownership change was authorized or implemented; it remains open. API authorization test recommendation: Deferred; tests were not added in this documentation-only follow-up. Successful two-user E2E recommendation: Deferred; the scenario remains unimplemented. No finding or recommendation is claimed fixed or dismissed.
+- **Validation:** `PR-REVIEW.md` records the review's test evidence: 32 backend tests passed, 1 Playwright test passed, and `git diff --check` passed. This follow-up validated JSONL parsing and ran `git diff --check`; application tests were not rerun.
+- **Outcome / commit:** Review verdict and deferred dispositions recorded in `ASSIGNMENT.md`; review report left unchanged. No commit was created for this interaction.
+
 ## Outcome and commit references
 
-No commit was created; there are no commit references for A–L.
+Interactions A–P include commit references in their individual records; no commit was created for interaction P.

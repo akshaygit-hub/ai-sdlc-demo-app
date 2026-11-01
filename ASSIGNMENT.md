@@ -32,7 +32,7 @@ The OpenSpec change [`add-role-based-invoice-approval-limits`](openspec/changes/
 
 [`AGENTS.md`](AGENTS.md) records repository conventions, role rules, architecture boundaries, and test/E2E practices. The activity audit is in [`AI-INTERACTION-LOG.md`](AI-INTERACTION-LOG.md) and [`AI-INTERACTION-LOG.jsonl`](AI-INTERACTION-LOG.jsonl); unavailable historical model and mode details are marked unavailable.
 
-Recorded workflow included `agent-customization` and `run-tests` skills, a general-purpose implementation sub-agent, and an independent code-review sub-agent. Independent review findings were investigated and addressed in later work. **Hook-based workflow requirement: Incomplete.** No hook implementation or evidence of hook execution was found; the repository contains only Git's sample hook files. A separate test-review agent and any PR review verdicts are not claimed here.
+Recorded workflow included `agent-customization` and `run-tests` skills, a general-purpose implementation sub-agent, and an independent code-review sub-agent. Independent review findings were investigated and addressed in later work. **Hook-based workflow requirement: Incomplete.** No hook implementation or evidence of hook execution was found; the repository contains only Git's sample hook files. A separate test-review agent is not claimed here.
 
 ## 6. Testing
 
@@ -77,9 +77,17 @@ Relevant commits from repository history:
 
 The interaction records, prompts/details available, tools, skills, human decisions, validation, and commit references are maintained in [`AI-INTERACTION-LOG.md`](AI-INTERACTION-LOG.md) and [`AI-INTERACTION-LOG.jsonl`](AI-INTERACTION-LOG.jsonl). Unknown historical details are explicitly marked unavailable or null rather than reconstructed.
 
-## 11. PR review findings
+## 11. Independent review findings and dispositions
 
-**Pending.** No PR review has been performed for submission, and no PR URL or PR finding verdicts are available. Complete the required PR review and record exactly one verdict per finding (fixed, dismissed with a reason, or deferred with a reason).
+**Branch review verdict: PASS WITH OBSERVATIONS.** An independent senior .NET review compared the `impl` branch with `main`. The workshop's specific review prompt was unavailable, so a custom review prompt was used. This was a branch review; no PR URL or PR review is claimed.
+
+| Finding / recommendation | Disposition | Reason |
+|---|---|---|
+| Medium-severity observation: shared demo credentials may let one person authenticate as two configured identities, weakening separation of duties. | **Deferred** | The finding remains open. The accounts are demo configuration, and no credential-management or account-ownership changes were authorized or implemented in this documentation update. The Domain distinct-username check does not prove distinct human operators. |
+| Add API authorization tests for unauthenticated access, Admin/legacy Approver denials, and authenticated identity/role propagation. | **Deferred** | The review identified this as a coverage recommendation. No API authorization tests were added in the read-only review or this documentation-only follow-up. |
+| Add a successful high-value Playwright scenario using two separately authenticated users. | **Deferred** | The review identified this as a coverage recommendation. The existing E2E covers rejected Manager over-limit approval; a successful two-user browser flow was not implemented. |
+
+No finding is recorded as fixed or dismissed.
 
 ## 12. Demo video
 
