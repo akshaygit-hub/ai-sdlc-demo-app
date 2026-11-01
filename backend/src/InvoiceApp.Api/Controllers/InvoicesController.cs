@@ -22,7 +22,7 @@ public class InvoicesController : ApiControllerBase
     [HttpGet]
     public ActionResult<IReadOnlyList<Invoice>> GetAll([FromQuery] string? status)
     {
-        var invoices = _repository.GetAll();
+        var invoices = _repository.GetAll().Select(invoice => invoice.CreateSnapshot()).ToList();
 
         if (!string.IsNullOrEmpty(status))
         {
@@ -41,7 +41,7 @@ public class InvoicesController : ApiControllerBase
     public ActionResult<Invoice> GetById(string id)
     {
         var invoice = _repository.GetById(id);
-        return invoice is null ? NotFound() : Ok(invoice);
+        return invoice is null ? NotFound() : Ok(invoice.CreateSnapshot());
     }
 
     [HttpPost]
@@ -63,7 +63,7 @@ public class InvoicesController : ApiControllerBase
             Amount = request.Amount
         });
 
-        return CreatedAtAction(nameof(GetById), new { id = invoice.Id }, invoice);
+        return CreatedAtAction(nameof(GetById), new { id = invoice.Id }, invoice.CreateSnapshot());
     }
 
     [HttpPost("{id}/submit")]

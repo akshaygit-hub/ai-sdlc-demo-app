@@ -51,13 +51,42 @@ public class InMemoryInvoiceRepository : IInvoiceRepository
     {
         lock (_lock)
         {
-            var index = _invoices.FindIndex(i => i.Id == invoice.Id);
-            if (index >= 0) _invoices[index] = invoice;
+            var index = _invoices.FindIndex(i => ReferenceEquals(i, invoice));
+            if (index < 0)
+            {
+                throw new KeyNotFoundException($"Invoice {invoice.Id} was not found.");
+            }
+
+            _invoices[index] = invoice;
         }
     }
 
     public bool Remove(string id)
     {
-        lock (_lock) return _invoices.RemoveAll(i => i.Id == id) > 0;
+        Invoice? invoice;
+        lock (_lock)
+        {
+            invoice = _invoices.FirstOrDefault(i => i.Id == id);
+        }
+
+        if (invoice is null)
+        {
+            return false;
+        }
+
+        lock (invoice)
+        {
+            lock (_lock)
+            {
+                var index = _invoices.FindIndex(i => ReferenceEquals(i, invoice));
+                if (index < 0)
+                {
+                    return false;
+                }
+
+                _invoices.RemoveAt(index);
+                return true;
+            }
+        }
     }
 }
