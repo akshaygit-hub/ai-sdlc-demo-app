@@ -91,6 +91,4 @@ No finding is recorded as fixed or dismissed.
 
 ## 12. Demo video
 
-**Pending:** add the actual 8–10-minute demo video URL here.
-
-`[Demo video URL pending]`
+[AkshayKumarKushawaha-3216168-AI in SDLC.mp4](https://nagarro-my.sharepoint.com/:v:/r/personal/akshay_kushawaha_nagarro_com/Documents/AI%20in%20SDLC%20Assignment/AkshayKumarKushawaha-3216168-AI%20in%20SDLC.mp4?d=w8d3463c3c5e247f280b4274ff4ef4615&csf=1&web=1&nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=Np8xPt)
